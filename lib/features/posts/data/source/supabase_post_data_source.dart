@@ -6,8 +6,8 @@ class SupabasePostDataSource {
   final SupabaseClient _client = Supabase.instance.client;
 
   static const _columns =
-      'id, content, created_at, '
-      'author:profiles!profile_id(username, full_name), '
+      'id, content, image_path, created_at, '
+      'author:profiles!profile_id(username, full_name, avatar_path), '
       'likes(count), '
       'my_like:likes(profile_id)';
 
@@ -50,6 +50,7 @@ class SupabasePostDataSource {
       await _client.from('posts').insert({
         'profile_id': _uid,
         'content': content,
+        'image_path': imagePath,
       });
     } on PostgrestException catch (e) {
       throw Exception(e.message);
@@ -81,8 +82,13 @@ class SupabasePostDataSource {
 
   Post _toPost(Map<String, dynamic> row) {
     final author = row['author'] as Map<String, dynamic>;
+    final avatarPath = author['avatar_path'] as String?;
     return Post(
       id: row['id'] as String,
+      imagePath: row['image_path'] as String?,
+      authorAvatarUrl: avatarPath == null
+          ? null
+          : _client.storage.from('avatars').getPublicUrl(avatarPath),
       content: row['content'] as String,
       createdAt: DateTime.parse(row['created_at'] as String),
       authorUsername: author['username'] as String,
